@@ -886,8 +886,9 @@ const downloadTelegramPhoto = async (fileId) => {
         const fileName = `photo_${Date.now()}.jpg`;
         const savePath = path.join(tempDir, fileName);
 
+        fs.writeFileSync(savePath, response.data);
 
-        console.log('✅ Photo downloaded:', savePath);
+        console.log('✅ Photo saved to:', savePath);
         return { savePath, filePath };
 
     } catch (error) {
