@@ -1,0 +1,137 @@
+.App {
+    min-height: 100vh;
+    font-family: 'Georgia', 'Times New Roman', serif;
+}
+
+/* ============================================
+   NEW: APP LAYOUT WITH SIDEBAR
+   ============================================ */
+
+.app-layout {
+    display: flex;
+    min-height: 100vh;
+    background: #f8f9fa;
+}
+
+.main-content {
+    flex: 1;
+    margin-left: 280px; /* Width of sidebar */
+    transition: margin-left 0.3s ease;
+    min-height: 100vh;
+    width: 100%;
+}
+
+/* When sidebar is collapsed */
+.sidebar.collapsed ~ .main-content {
+    margin-left: 80px;
+}
+
+/* Remove top padding from dashboard containers since sidebar is now fixed */
+.dashboard-container,
+.host-management-container,
+.user-management-container {
+    padding-top: 30px !important;
+}
+
+/* ============================================
+   LOADING STATE
+   ============================================ */
+
+.loading-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #6366f1;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   404 PAGE
+   ============================================ */
+
+.not-found {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    color: white;
+    text-align: center;
+    padding: 20px;
+}
+
+.not-found h1 {
+    font-size: 120px;
+    margin: 0;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.not-found p {
+    font-size: 24px;
+    margin: 20px 0;
+    color: #cbd5e1;
+}
+
+.not-found a {
+    color: white;
+    text-decoration: none;
+    padding: 12px 32px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 8px;
+    margin-top: 20px;
+    display: inline-block;
+    transition: all 0.3s;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.not-found a:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+/* ============================================
+   RESPONSIVE LAYOUT
+   ============================================ */
+
+@media (max-width: 1024px) {
+    .main-content {
+        margin-left: 0;
+    }
+
+    .sidebar.collapsed ~ .main-content {
+        margin-left: 0;
+    }
+
+    /* Add padding for mobile menu toggle button */
+    .dashboard-container,
+    .host-management-container,
+    .user-management-container {
+        padding-top: 20px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        margin-left: 0;
+    }
+}
