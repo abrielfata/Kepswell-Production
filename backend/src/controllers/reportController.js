@@ -10,7 +10,7 @@ const AppError = require('../utils/appError');
  * GET ALL REPORTS (Manager Only)
  * With month/year filter support
  */
-const getAllReports = async (req, res) => {
+const getAllReports = async (req, res, next) => {
     try {
         const {
             status,
@@ -118,7 +118,7 @@ const getAllReports = async (req, res) => {
  * GET MY REPORTS (Host Only)
  * With month/year filter
  */
-const getMyReports = async (req, res) => {
+const getMyReports = async (req, res, next) => {
     try {
         const userId = req.user.id;
         const {
@@ -219,7 +219,7 @@ const getMyReports = async (req, res) => {
  * UPDATE REPORT STATUS (Manager Only)
  * ✅ NOW SENDS TELEGRAM NOTIFICATION
  */
-const updateReportStatus = async (req, res) => {
+const updateReportStatus = async (req, res, next) => {
     try {
         const { id } = req.params;
         const { status, notes } = req.body;
@@ -308,7 +308,7 @@ const updateReportStatus = async (req, res) => {
  * GET REPORT STATISTICS (Manager Only)
  * With optional month/year filter
  */
-const getReportStatistics = async (req, res) => {
+const getReportStatistics = async (req, res, next) => {
     try {
         const { month, year } = req.query;
 
@@ -362,7 +362,7 @@ const getReportStatistics = async (req, res) => {
  * GET MONTHLY HOST STATISTICS (Manager Only)
  * Returns host performance by month
  */
-const getMonthlyHostStatistics = async (req, res) => {
+const getMonthlyHostStatistics = async (req, res, next) => {
     try {
         const { month, year } = req.query;
 
@@ -410,7 +410,7 @@ const getMonthlyHostStatistics = async (req, res) => {
  * GET AVAILABLE MONTHS (for dropdown)
  * Returns list of months that have reports
  */
-const getAvailableMonths = async (req, res) => {
+const getAvailableMonths = async (req, res, next) => {
     try {
         const monthsQuery = `
             SELECT DISTINCT
@@ -441,7 +441,7 @@ const getAvailableMonths = async (req, res) => {
 };
 
 // Keep existing functions
-const getReportById = async (req, res) => {
+const getReportById = async (req, res, next) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;

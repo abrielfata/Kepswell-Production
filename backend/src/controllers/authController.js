@@ -6,7 +6,7 @@ const AppError = require('../utils/appError');
 /**
  * LOGIN CONTROLLER - EMAIL & PASSWORD
  */
-const login = async (req, res) => {
+const login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
 
@@ -96,7 +96,7 @@ const login = async (req, res) => {
 /**
  * GET CURRENT USER
  */
-const getCurrentUser = async (req, res) => {
+const getCurrentUser = async (req, res, next) => {
     try {
         const userQuery = `
             SELECT id, telegram_user_id, username, full_name, email, role, 

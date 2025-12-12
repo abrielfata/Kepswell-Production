@@ -11,7 +11,7 @@ const {
  * GET ALL HOSTS (Manager Only)
  * Mendapatkan semua host (approved & pending)
  */
-const getAllHosts = async (req, res) => {
+const getAllHosts = async (req, res, next) => {
     try {
         const { status, is_active } = req.query;
 
@@ -91,7 +91,7 @@ const getAllHosts = async (req, res) => {
 /**
  * GET HOST BY ID (Manager Only)
  */
-const getHostById = async (req, res) => {
+const getHostById = async (req, res, next) => {
     try {
         const { id } = req.params;
 
@@ -139,7 +139,7 @@ const getHostById = async (req, res) => {
  * CREATE HOST (Manager Only)
  * Membuat host baru secara manual
  */
-const createHost = async (req, res) => {
+const createHost = async (req, res, next) => {
     try {
         const { telegram_user_id, username, full_name, email, password, is_approved = true } = req.body;
 
@@ -223,7 +223,7 @@ const createHost = async (req, res) => {
  * UPDATE HOST (Manager Only)
  * ✅ UPDATED: Now supports Email & Password editing
  */
-const updateHost = async (req, res) => {
+const updateHost = async (req, res, next) => {
     try {
         const { id } = req.params;
         const { telegram_user_id, username, full_name, email, password, is_active, is_approved } = req.body;
@@ -349,7 +349,7 @@ const updateHost = async (req, res) => {
  * DELETE HOST (Manager Only)
  * Hapus host beserta semua laporannya
  */
-const deleteHost = async (req, res) => {
+const deleteHost = async (req, res, next) => {
     try {
         const { id } = req.params;
 
@@ -390,7 +390,7 @@ const deleteHost = async (req, res) => {
  * Aktifkan/nonaktifkan host
  * ✅ NOW SENDS TELEGRAM NOTIFICATION
  */
-const toggleHostStatus = async (req, res) => {
+const toggleHostStatus = async (req, res, next) => {
     try {
         const { id } = req.params;
 
