@@ -8,7 +8,7 @@ const AppError = require('../utils/appError');
 /**
  * GET ALL PENDING USERS (Manager Only)
  */
-const getPendingUsers = async (req, res) => {
+const getPendingUsers = async (req, res, next) => {
     try {
         const userQuery = `
             SELECT 
@@ -49,7 +49,7 @@ const getPendingUsers = async (req, res) => {
  * APPROVE USER (Manager Only)
  * ✅ FIXED: Now sets is_active = true when approving
  */
-const approveUser = async (req, res) => {
+const approveUser = async (req, res, next) => {
     try {
         const { userId } = req.params;
 
@@ -107,7 +107,7 @@ const approveUser = async (req, res) => {
  * REJECT/DELETE USER (Manager Only)
  * ✅ NOW SENDS TELEGRAM NOTIFICATION
  */
-const rejectUser = async (req, res) => {
+const rejectUser = async (req, res, next) => {
     try {
         const { userId } = req.params;
 

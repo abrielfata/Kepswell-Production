@@ -406,9 +406,9 @@ const processPhotoReport = async (message, chatId, telegramUserId, username) => 
 
     await sendTelegramMessage(chatId, '⏳ Memproses screenshot...');
 
-    const photoPath = await downloadTelegramPhoto(fileId);
+    const downloadResult = await downloadTelegramPhoto(fileId);
 
-    if (!photoPath) {
+    if (!downloadResult || !downloadResult.savePath) {
         await sendTelegramMessage(
             chatId,
             '❌ Gagal mengunduh foto. Coba lagi!'
@@ -416,11 +416,13 @@ const processPhotoReport = async (message, chatId, telegramUserId, username) => 
         return;
     }
 
-    console.log('🔍 Starting OCR process...');
-    const ocrResult = await extractTextFromImage(photoPath);
+    const { savePath, filePath: telegramFilePath } = downloadResult;
 
-    if (fs.existsSync(photoPath)) {
-        fs.unlinkSync(photoPath);
+    console.log('🔍 Starting OCR process...');
+    const ocrResult = await extractTextFromImage(savePath);
+
+    if (fs.existsSync(savePath)) {
+        fs.unlinkSync(savePath);
         console.log('🗑️ Temp file deleted');
     }
 
@@ -446,7 +448,9 @@ const processPhotoReport = async (message, chatId, telegramUserId, username) => 
         minimumFractionDigits: 0
     }).format(ocrResult.parsedGMV);
 
-    const screenshotUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${fileId}`;
+    const screenshotUrl = telegramFilePath
+        ? `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${telegramFilePath}`
+        : `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${fileId}`;
     
     setState(telegramUserId, 'WAITING_CONFIRMATION', {
         userId: userId,
@@ -882,10 +886,9 @@ const downloadTelegramPhoto = async (fileId) => {
         const fileName = `photo_${Date.now()}.jpg`;
         const savePath = path.join(tempDir, fileName);
 
-        fs.writeFileSync(savePath, response.data);
 
         console.log('✅ Photo downloaded:', savePath);
-        return savePath;
+        return { savePath, filePath };
 
     } catch (error) {
         console.error('❌ Download photo error:', error.message);
