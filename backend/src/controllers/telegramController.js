@@ -452,26 +452,61 @@ const processPhotoReport = async (message, chatId, telegramUserId, username) => 
         ? `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${telegramFilePath}`
         : `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${fileId}`;
     
+    // ✅ NEW CODE: Handle multiple platforms
     setState(telegramUserId, 'WAITING_CONFIRMATION', {
         userId: userId,
-        gmv: ocrResult.parsedGMV,
         screenshotUrl: screenshotUrl,
         ocrRawText: ocrResult.rawText,
-        duration: ocrResult.parsedDuration 
+        platforms: ocrResult.platforms,              // ✅ NEW: Array of platforms
+        isDualPlatform: ocrResult.isDualPlatform     // ✅ NEW: Flag
     });
 
-    await sendTelegramMessage(
-        chatId,
-        `✅ *Screenshot Berhasil Diproses!*\n\n` +
-        `📊 GMV Terdeteksi: ${formattedGMV}\n` +
-        `⏱️ Durasi LIVE: ${ocrResult.parsedDuration || 'Tidak terdeteksi'}\n\n` +
-        `━━━━━━━━━━━━━━━━━━━\n` +
-        `Apakah data ini sudah benar?\n\n` +
-        `• Ketik *Y* atau *Ya* untuk Simpan ✅\n` +
-        `• Ketik *N* atau *Tidak* untuk Batal ❌\n` +
-        `• Kirim foto baru untuk scan ulang 📸`,
-        { parse_mode: 'Markdown' }
-    );
+    // ✅ NEW: Build confirmation message
+    let confirmationMessage = '✅ *Screenshot Berhasil Diproses!*\n\n';
+
+    if (ocrResult.isDualPlatform) {
+        // ✅ DUAL PLATFORM MESSAGE
+        confirmationMessage += `🎯 *Terdeteksi ${ocrResult.platforms.length} Platform:*\n\n`;
+        
+        ocrResult.platforms.forEach((platformData, index) => {
+            const emoji = platformData.platform === 'TIKTOK' ? '⚫' : '🟠';
+            const name = platformData.platform === 'TIKTOK' ? 'TikTok' : 'Shopee';
+            const gmv = new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(platformData.parsedGMV);
+            
+            confirmationMessage += `${index + 1}️⃣ ${emoji} *${name} Live*\n`;
+            confirmationMessage += `   📊 GMV: ${gmv}\n`;
+            confirmationMessage += `   ⏱️ Durasi: ${platformData.parsedDuration || 'Tidak terdeteksi'}\n\n`;
+        });
+        
+        confirmationMessage += `💡 *Kedua platform akan disimpan!*\n\n`;
+        
+    } else {
+        // ✅ SINGLE PLATFORM MESSAGE
+        const platformData = ocrResult.platforms[0];
+        const emoji = platformData.platform === 'TIKTOK' ? '⚫' : '🟠';
+        const name = platformData.platform === 'TIKTOK' ? 'TikTok' : 'Shopee';
+        const gmv = new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0
+        }).format(platformData.parsedGMV);
+        
+        confirmationMessage += `${emoji} Platform: *${name} Live*\n`;
+        confirmationMessage += `📊 GMV Terdeteksi: ${gmv}\n`;
+        confirmationMessage += `⏱️ Durasi LIVE: ${platformData.parsedDuration || 'Tidak terdeteksi'}\n\n`;
+    }
+
+    confirmationMessage += `━━━━━━━━━━━━━━━━━━━\n`;
+    confirmationMessage += `Apakah data ini sudah benar?\n\n`;
+    confirmationMessage += `• Ketik *Y* atau *Ya* untuk Simpan ✅\n`;
+    confirmationMessage += `• Ketik *N* atau *Tidak* untuk Batal ❌\n`;
+    confirmationMessage += `• Kirim foto baru untuk scan ulang 📸`;
+
+    await sendTelegramMessage(chatId, confirmationMessage, { parse_mode: 'Markdown' });
 
     console.log('✅ Waiting for user confirmation');
     console.log('========== PHOTO PROCESSING END ==========\n');
@@ -488,46 +523,78 @@ const handleConfirmation = async (chatId, telegramUserId, textInput) => {
 
     if (response === 'Y' || response === 'YA' || response === 'YES') {
         console.log('✅ User confirmed: YES');
-        const { userId, gmv, screenshotUrl, ocrRawText, duration } = currentState.data;
+        // ✅ NEW: Extract multi-platform data from state
+        const { userId, screenshotUrl, ocrRawText, platforms, isDualPlatform } = currentState.data;
 
         try {
-            const reportQuery = `
-                INSERT INTO reports (host_id, reported_gmv, screenshot_url, ocr_raw_text, status, live_duration)
-                VALUES ($1, $2, $3, $4, 'PENDING', $5)
-                RETURNING id, reported_gmv, live_duration, created_at
-            `;
+            // ✅ NEW CODE: Multiple inserts for detected platforms
+            let successMessage = '✅ *Laporan Berhasil Disimpan!*\n\n';
+            const savedReports = [];
 
-            const reportResult = await query(reportQuery, [
-                userId,
-                gmv,
-                screenshotUrl,
-                ocrRawText,
-                duration || null
-            ]);
+            for (const platformData of platforms) {
+                const reportQuery = `
+                    INSERT INTO reports (host_id, reported_gmv, screenshot_url, ocr_raw_text, status, live_duration, platform)
+                    VALUES ($1, $2, $3, $4, 'PENDING', $5, $6)
+                    RETURNING id, reported_gmv, live_duration, platform, created_at
+                `;
 
-            const report = reportResult.rows[0];
+                const reportResult = await query(reportQuery, [
+                    userId,
+                    platformData.parsedGMV,
+                    screenshotUrl,
+                    ocrRawText,
+                    platformData.parsedDuration || null,
+                    platformData.platform
+                ]);
 
-            const formattedGMV = new Intl.NumberFormat('id-ID', {
-                style: 'currency',
-                currency: 'IDR',
-                minimumFractionDigits: 0
-            }).format(report.reported_gmv);
+                const report = reportResult.rows[0];
+                savedReports.push(report);
+                console.log(`✅ Report saved: Platform=${report.platform}, ID=${report.id}, GMV=${report.reported_gmv}`);
+            }
+
+            // ✅ NEW: Build success message
+            if (isDualPlatform) {
+                successMessage += `🎉 *${savedReports.length} Platform Berhasil Disimpan!*\n\n`;
+                
+                savedReports.forEach((report, index) => {
+                    const emoji = report.platform === 'TIKTOK' ? '⚫' : '🟠';
+                    const name = report.platform === 'TIKTOK' ? 'TikTok' : 'Shopee';
+                    const gmv = new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: 'IDR',
+                        minimumFractionDigits: 0
+                    }).format(report.reported_gmv);
+                    
+                    successMessage += `${index + 1}️⃣ ${emoji} *${name} Live*\n`;
+                    successMessage += `   🆔 Report ID: #${report.id}\n`;
+                    successMessage += `   📊 GMV: ${gmv}\n`;
+                    successMessage += `   ⏱️ Durasi: ${report.live_duration || 'Tidak terdeteksi'}\n`;
+                    successMessage += `   📅 Waktu: ${new Date(report.created_at).toLocaleString('id-ID')}\n\n`;
+                });
+                
+            } else {
+                // Single platform
+                const report = savedReports[0];
+                const emoji = report.platform === 'TIKTOK' ? '⚫' : '🟠';
+                const name = report.platform === 'TIKTOK' ? 'TikTok' : 'Shopee';
+                const gmv = new Intl.NumberFormat('id-ID', {
+                    style: 'currency',
+                    currency: 'IDR',
+                    minimumFractionDigits: 0
+                }).format(report.reported_gmv);
+                
+                successMessage += `${emoji} Platform: *${name} Live*\n`;
+                successMessage += `📊 GMV: ${gmv}\n`;
+                successMessage += `⏱️ Durasi: ${report.live_duration || 'Tidak terdeteksi'}\n`;
+                successMessage += `🆔 Report ID: #${report.id}\n`;
+                successMessage += `📅 Waktu: ${new Date(report.created_at).toLocaleString('id-ID')}\n\n`;
+            }
+
+            successMessage += `⏳ Status: Menunggu verifikasi manager`;
 
             clearState(telegramUserId);
-
-            await sendTelegramMessage(
-                chatId,
-                `✅ *Laporan Berhasil Disimpan!*\n\n` +
-                `📊 GMV: ${formattedGMV}\n` +
-                `⏱️ Durasi: ${report.live_duration || 'Tidak terdeteksi'}\n` +
-                `🆔 Report ID: #${report.id}\n` +
-                `📅 Waktu: ${new Date(report.created_at).toLocaleString('id-ID')}\n\n` +
-                `Status: Menunggu verifikasi manager`,
-                { parse_mode: 'Markdown' }
-            );
-
-            console.log('✅ Report saved successfully:', report.id);
-
+            await sendTelegramMessage(chatId, successMessage, { parse_mode: 'Markdown' });
+            console.log('✅ Report(s) saved successfully:', savedReports.map(r => r.id).join(', '));
         } catch (error) {
             console.error('❌ Save report error:', error);
             await sendTelegramMessage(

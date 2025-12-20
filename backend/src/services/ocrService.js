@@ -76,21 +76,27 @@ const extractTextFromImage = async (imagePath = null, imageUrl = null, retryCoun
         const rawText = ocrResult.ParsedText;
 
         console.log('✅ OCR Success! Text length:', rawText.length);
-        console.log('📄 Raw Text (first 300 chars):', rawText.substring(0, 300));
+        console.log('📄 Raw Text (first 500 chars):', rawText.substring(0, 500));
 
-        // Parse GMV dari text
-        const parsedGMV = parseGMVFromText(rawText);
-        const parsedDuration = parseDurationFromText(rawText);
+        // ✅ NEW: Use platform detection (multi-platform)
+        const platformData = detectAndParsePlatform(rawText);
 
-        console.log('💰 Parsed GMV:', parsedGMV);
-        console.log('⏱️ Parsed Duration:', parsedDuration || 'Not found');
+        console.log('🎯 Primary Platform:', platformData.primaryPlatform);
+        console.log('📦 Platforms Detected:', platformData.platforms.length);
+        console.log('💰 Parsed GMV (primary):', platformData.platforms[0]?.parsedGMV || 0);
+        console.log('⏱️ Parsed Duration (primary):', platformData.platforms[0]?.parsedDuration || 'Not found');
         console.log('========== OCR SUCCESS ==========\n');
 
         return {
             success: true,
             rawText: rawText,
-            parsedGMV: parsedGMV,
-            parsedDuration: parsedDuration,
+            platforms: platformData.platforms,               // Array of detected platforms
+            primaryPlatform: platformData.primaryPlatform,
+            isDualPlatform: platformData.isDualPlatform,
+            // Backward compatibility (single platform)
+            platform: platformData.primaryPlatform,
+            parsedGMV: platformData.platforms[0]?.parsedGMV || 0,
+            parsedDuration: platformData.platforms[0]?.parsedDuration || null,
             confidence: ocrResult.TextOrientation || 0
         };
 
@@ -114,6 +120,111 @@ const extractTextFromImage = async (imagePath = null, imageUrl = null, retryCoun
             rawText: null,
             parsedGMV: 0
         };
+    }
+};
+
+/**
+ * ========================================
+ * ✅ NEW FUNCTION: Parse Shopee Duration
+ * ========================================
+ * Extract duration dari Shopee Live screenshot
+ * 
+ * Format yang didukung:
+ * - "Durasi Live: 2 jam 30 menit"
+ * - "Durasi: 45 menit"
+ * - "2 jam 15 menit"
+ * - "01:45:30" (HH:MM:SS format)
+ * 
+ * @param {string} text - Cleaned OCR text (uppercase)
+ * @returns {string|null} Duration string atau null
+ */
+const parseShopeeDuration = (text) => {
+    try {
+        console.log('\n⏱️ Parsing Shopee Duration...');
+        
+        // Pattern 1: "Durasi Live: X jam Y menit" atau "Durasi: X jam Y menit"
+        const pattern1 = /Durasi(?:\s*Live)?[:\s]*(\d+)\s*jam(?:\s*(\d+)\s*(?:menit|mnt))?/i;
+        const match1 = text.match(pattern1);
+        
+        if (match1) {
+            const hours = parseInt(match1[1]) || 0;
+            const minutes = parseInt(match1[2]) || 0;
+            
+            if (hours > 0 || minutes > 0) {
+                let duration = '';
+                if (hours > 0) duration += `${hours} jam`;
+                if (minutes > 0) {
+                    if (duration) duration += ' ';
+                    duration += `${minutes} menit`;
+                }
+                console.log('✅ Found Shopee Duration (Pattern 1):', duration);
+                console.log('   Match:', match1[0]);
+                return duration;
+            }
+        }
+
+        // Pattern 2: "Durasi: X menit" (tanpa jam)
+        const pattern2 = /Durasi(?:\s*Live)?[:\s]*(\d+)\s*(?:menit|mnt)/i;
+        const match2 = text.match(pattern2);
+        
+        if (match2) {
+            const minutes = parseInt(match2[1]) || 0;
+            if (minutes > 0) {
+                const duration = `${minutes} menit`;
+                console.log('✅ Found Shopee Duration (Pattern 2):', duration);
+                console.log('   Match:', match2[0]);
+                return duration;
+            }
+        }
+
+        // Pattern 3: Time format "HH:MM:SS"
+        const pattern3 = /(\d{1,2}):(\d{2}):(\d{2})/;
+        const match3 = text.match(pattern3);
+        
+        if (match3) {
+            const hours = parseInt(match3[1]) || 0;
+            const minutes = parseInt(match3[2]) || 0;
+            
+            if (hours > 0 || minutes > 0) {
+                let duration = '';
+                if (hours > 0) duration += `${hours} jam`;
+                if (minutes > 0) {
+                    if (duration) duration += ' ';
+                    duration += `${minutes} menit`;
+                }
+                console.log('✅ Found Shopee Duration (Time format):', duration);
+                console.log('   Match:', match3[0]);
+                return duration;
+            }
+        }
+
+        // Pattern 4: Just "X jam Y menit" (tanpa prefix)
+        const pattern4 = /(\d+)\s*jam(?:\s*(\d+)\s*(?:menit|mnt))?/i;
+        const match4 = text.match(pattern4);
+        
+        if (match4) {
+            const hours = parseInt(match4[1]) || 0;
+            const minutes = parseInt(match4[2]) || 0;
+            
+            if (hours > 0 || minutes > 0) {
+                let duration = '';
+                if (hours > 0) duration += `${hours} jam`;
+                if (minutes > 0) {
+                    if (duration) duration += ' ';
+                    duration += `${minutes} menit`;
+                }
+                console.log('✅ Found Shopee Duration (Pattern 4):', duration);
+                console.log('   Match:', match4[0]);
+                return duration;
+            }
+        }
+
+        console.log('⚠️ No Shopee Duration pattern found');
+        return null;
+
+    } catch (error) {
+        console.error('❌ Parse Shopee Duration Error:', error.message);
+        return null;
     }
 };
 
@@ -252,6 +363,90 @@ const parseDurationFromText = (text) => {
     }
 };
 /**
+ * ========================================
+ * ✅ ENHANCED: Multi-Platform Detection
+ * ========================================
+ * Detect dan parse MULTIPLE platforms dari satu screenshot
+ * Mendukung dual screenshot (TikTok + Shopee bersamaan)
+ * 
+ * @param {string} text - Raw OCR text
+ * @returns {object} {platforms: Array, primaryPlatform: string}
+ */
+const detectAndParsePlatform = (text) => {
+    const cleanText = text.replace(/\s+/g, ' ').toUpperCase();
+    
+    console.log('\n🔍 ========== PLATFORM DETECTION ==========');
+    console.log('📄 Text Length:', text.length, 'characters');
+    
+    // Detect keywords untuk setiap platform
+    const isTikTok = cleanText.includes('TIKTOK') || 
+                     cleanText.includes('GMV') ||
+                     (cleanText.includes('LIVE') && cleanText.includes('DURASI'));
+    
+    const isShopee = cleanText.includes('SHOPEE') || 
+                     cleanText.includes('PENJUALAN') ||
+                     cleanText.includes('PRODUK TERJUAL') ||
+                     cleanText.includes('PERSENTASE KLIK') ||
+                     cleanText.includes('PESANAN');
+
+    const detectedPlatforms = [];
+    
+    // ✅ NEW: Check TikTok
+    if (isTikTok) {
+        console.log('⚫ TikTok keywords detected');
+        const tiktokGMV = parseTikTokGMV(cleanText);
+        const tiktokDuration = parseTikTokDuration(cleanText);
+        
+        if (tiktokGMV > 0) {
+            detectedPlatforms.push({
+                platform: 'TIKTOK',
+                parsedGMV: tiktokGMV,
+                parsedDuration: tiktokDuration
+            });
+            console.log('   ✅ TikTok GMV:', tiktokGMV);
+            console.log('   ✅ TikTok Duration:', tiktokDuration || 'Not found');
+        }
+    }
+    
+    // ✅ NEW: Check Shopee
+    if (isShopee) {
+        console.log('🟠 Shopee keywords detected');
+        const shopeeGMV = parseShopeeGMV(cleanText);
+        const shopeeDuration = parseShopeeDuration(cleanText);
+        
+        if (shopeeGMV > 0) {
+            detectedPlatforms.push({
+                platform: 'SHOPEE',
+                parsedGMV: shopeeGMV,
+                parsedDuration: shopeeDuration
+            });
+            console.log('   ✅ Shopee GMV:', shopeeGMV);
+            console.log('   ✅ Shopee Duration:', shopeeDuration || 'Not found');
+        }
+    }
+
+    // Determine primary platform (highest GMV)
+    let primaryPlatform = 'TIKTOK'; // default
+    if (detectedPlatforms.length > 0) {
+        const sorted = detectedPlatforms.sort((a, b) => b.parsedGMV - a.parsedGMV);
+        primaryPlatform = sorted[0].platform;
+    }
+
+    console.log('\n🎯 DETECTION RESULT:');
+    console.log('   Total Platforms Found:', detectedPlatforms.length);
+    console.log('   Primary Platform:', primaryPlatform);
+    detectedPlatforms.forEach((p, i) => {
+        console.log(`   ${i + 1}. ${p.platform}: GMV ${p.parsedGMV}, Duration ${p.parsedDuration || 'N/A'}`);
+    });
+    console.log('========== DETECTION COMPLETE ==========' + '\n');
+
+    return {
+        platforms: detectedPlatforms,           // ✅ NEW: Array of detected platforms
+        primaryPlatform: primaryPlatform,       // ✅ NEW: Primary platform
+        isDualPlatform: detectedPlatforms.length > 1  // ✅ NEW: Flag
+    };
+};
+/**
  * Apply multiplier (K = 1000)
  */
 const applyMultiplier = (numStr) => {
@@ -268,6 +463,165 @@ const applyMultiplier = (numStr) => {
     const num = cleanNumber(tempStr);
     
     return num * multiplier;
+};
+
+
+
+/**
+ * ========================================
+ * ✅ ENHANCED: Parse Shopee GMV
+ * ========================================
+ * Handle berbagai format OCR:
+ * - "PENJUALAN RP 142,350"
+ * - "PENJUALAN(RP) 142.350"  (dengan kurung & newline)
+ * - "Penjualan(Rp)\n142.350"
+ * 
+ * @param {string} text - Cleaned OCR text (uppercase)
+ * @returns {number} GMV amount atau 0
+ */
+const parseShopeeGMV = (text) => {
+    try {
+        console.log('\n🔍 Parsing Shopee GMV...');
+        console.log('📝 Input text length:', text.length);
+        
+        // Clean text: remove extra spaces and newlines
+        const cleanedText = text.replace(/\s+/g, ' ').trim();
+        console.log('🧹 Cleaned text (first 300 chars):', cleanedText.substring(0, 300));
+        
+        const numericRegex = /[\d.,K]+/i;
+
+        // ========================================
+        // Priority 1: PENJUALAN dengan berbagai format
+        // ========================================
+        
+        // Format A: "PENJUALAN RP 142.350"
+        // Format B: "PENJUALAN(RP) 142.350"
+        // Format C: "PENJUALAN (RP) 142.350"
+        const salesPattern1 = new RegExp(
+            `PENJUALAN[\\s\\(]*RP[\\)\\s]*(${numericRegex.source})`,
+            'i'
+        );
+        const salesMatch1 = cleanedText.match(salesPattern1);
+        
+        if (salesMatch1 && salesMatch1[1]) {
+            const gmv = applyMultiplier(salesMatch1[1]);
+            if (gmv > 0) {
+                console.log('✅ Found Shopee GMV (Pattern 1: PENJUALAN):', gmv);
+                console.log('   Match:', salesMatch1[0]);
+                console.log('   Extracted number:', salesMatch1[1]);
+                return gmv;
+            }
+        }
+
+        // ========================================
+        // Priority 2: Look for numbers AFTER "PENJUALAN" keyword
+        // ========================================
+        
+        const penjualanIndex = cleanedText.indexOf('PENJUALAN');
+        if (penjualanIndex !== -1) {
+            console.log('   Found PENJUALAN keyword at index:', penjualanIndex);
+            
+            // Extract text after PENJUALAN (next 50 chars)
+            const afterPenjualan = cleanedText.substring(penjualanIndex, penjualanIndex + 50);
+            console.log('   Text after PENJUALAN:', afterPenjualan);
+            
+            // Find first number after PENJUALAN
+            const numberMatch = afterPenjualan.match(new RegExp(numericRegex.source));
+            if (numberMatch && numberMatch[0]) {
+                const gmv = applyMultiplier(numberMatch[0]);
+                if (gmv > 0 && gmv > 1000) { // Must be > 1000 to be valid GMV
+                    console.log('✅ Found Shopee GMV (After PENJUALAN):', gmv);
+                    console.log('   Extracted number:', numberMatch[0]);
+                    return gmv;
+                }
+            }
+        }
+
+        // ========================================
+        // Priority 3: TOTAL PENJUALAN
+        // ========================================
+        
+        const totalSalesPattern = new RegExp(
+            `TOTAL[\\s]*PENJUALAN[\\s\\(]*RP[\\)\\s]*(${numericRegex.source})`,
+            'i'
+        );
+        const totalSalesMatch = cleanedText.match(totalSalesPattern);
+        
+        if (totalSalesMatch && totalSalesMatch[1]) {
+            const gmv = applyMultiplier(totalSalesMatch[1]);
+            if (gmv > 0) {
+                console.log('✅ Found Shopee GMV (TOTAL PENJUALAN):', gmv);
+                console.log('   Match:', totalSalesMatch[0]);
+                return gmv;
+            }
+        }
+
+        // ========================================
+        // Priority 4: PRODUK TERJUAL keyword (alternative indicator)
+        // ========================================
+        
+        const produkIndex = cleanedText.indexOf('PRODUK TERJUAL');
+        if (produkIndex !== -1) {
+            console.log('   Found PRODUK TERJUAL keyword (Shopee indicator)');
+            
+            // Look for largest RP value in text (likely GMV)
+            const rupiahValues = [];
+            const rupiahRegex = new RegExp(`RP[\\s]*(${numericRegex.source})`, 'gi');
+            let match;
+            
+            while ((match = rupiahRegex.exec(cleanedText)) !== null) {
+                const value = applyMultiplier(match[1]);
+                if (value > 1000) { // Filter out small values
+                    rupiahValues.push(value);
+                    console.log('   Found RP value:', value);
+                }
+            }
+            
+            if (rupiahValues.length > 0) {
+                const maxValue = Math.max(...rupiahValues);
+                console.log('✅ Found Shopee GMV (Max RP near PRODUK TERJUAL):', maxValue);
+                return maxValue;
+            }
+        }
+
+        // ========================================
+        // Priority 5: Generic RP pattern (as last resort)
+        // ========================================
+        
+        console.log('   Trying generic RP pattern...');
+        const rupiahAll = cleanedText.match(new RegExp(`RP[\\s]*(${numericRegex.source})`, 'gi'));
+        
+        if (rupiahAll && rupiahAll.length > 0) {
+            console.log(`   Found ${rupiahAll.length} RP values:`, rupiahAll);
+            
+            const amounts = rupiahAll.map(r => {
+                let numStr = r.replace(/RP[\s]*/i, '');
+                return applyMultiplier(numStr);
+            }).filter(n => n > 1000); // Filter: must be > 1000
+
+            if (amounts.length > 0) {
+                // If we have PENJUALAN keyword, take max value
+                // Otherwise, be cautious (might be TikTok value)
+                if (cleanedText.includes('PENJUALAN')) {
+                    const maxAmount = Math.max(...amounts);
+                    console.log('✅ Found Shopee GMV (Max Rupiah with PENJUALAN):', maxAmount);
+                    console.log('   All amounts:', amounts);
+                    return maxAmount;
+                } else {
+                    console.log('⚠️ Found RP values but no PENJUALAN keyword');
+                    console.log('   Might be TikTok data, returning 0');
+                    return 0;
+                }
+            }
+        }
+
+        console.log('⚠️ No Shopee GMV pattern found');
+        return 0;
+
+    } catch (error) {
+        console.error('❌ Parse Shopee GMV Error:', error.message);
+        return 0;
+    }
 };
 
 /**
@@ -296,9 +650,26 @@ const isValidGMV = (gmv) => {
     return gmv && gmv > 0 && gmv < 10000000000; // Max 10 Miliar
 };
 
+/**
+ * Fallback TikTok parsers (simple wrappers to existing generic parsers)
+ * Provided so exports reference valid functions for testing.
+ */
+const parseTikTokGMV = (text) => {
+    console.log('\n🔁 Fallback parseTikTokGMV called');
+    return parseGMVFromText(text);
+};
+
+const parseTikTokDuration = (text) => {
+    console.log('\n🔁 Fallback parseTikTokDuration called');
+    return parseDurationFromText(text);
+};
+
 module.exports = {
     extractTextFromImage,
-    parseGMVFromText,
-    parseDurationFromText,
+    detectAndParsePlatform,    // ✅ NEW
+    parseTikTokGMV,            // ✅ NEW (untuk testing)
+    parseShopeeGMV,            // ✅ NEW
+    parseTikTokDuration,       // ✅ NEW (untuk testing)
+    parseShopeeDuration,       // ✅ NEW
     isValidGMV
 };
