@@ -5,6 +5,8 @@ const {
     sendReportRejectedNotification
 } = require('./telegramController');
 const AppError = require('../utils/appError');
+const REPORT_MONTH_EXPR = `COALESCE(r.month, EXTRACT(MONTH FROM r.created_at)::INT)`;
+const REPORT_YEAR_EXPR = `COALESCE(r.year, EXTRACT(YEAR FROM r.created_at)::INT)`;
 
 /**
  * GET ALL REPORTS (Manager Only)
@@ -40,7 +42,7 @@ const getAllReports = async (req, res, next) => {
         // Add month filter
         if (month) {
             whereClause += whereClause ? ' AND' : 'WHERE';
-            whereClause += ` r.month = $${paramIndex}`;
+            whereClause += ` ${REPORT_MONTH_EXPR} = $${paramIndex}`;
             params.push(parseInt(month));
             paramIndex++;
         }
@@ -48,7 +50,7 @@ const getAllReports = async (req, res, next) => {
         // Add year filter
         if (year) {
             whereClause += whereClause ? ' AND' : 'WHERE';
-            whereClause += ` r.year = $${paramIndex}`;
+            whereClause += ` ${REPORT_YEAR_EXPR} = $${paramIndex}`;
             params.push(parseInt(year));
             paramIndex++;
         }
@@ -63,8 +65,8 @@ const getAllReports = async (req, res, next) => {
                 r.status,
                 r.notes,
                 r.live_duration,
-                r.month,
-                r.year,
+                ${REPORT_MONTH_EXPR} AS month,
+                ${REPORT_YEAR_EXPR} AS year,
                 r.created_at,
                 r.updated_at,
                 u.id as host_id,
@@ -146,13 +148,13 @@ const getMyReports = async (req, res, next) => {
         }
 
         if (month) {
-            whereClause += ` AND r.month = $${paramIndex}`;
+            whereClause += ` AND ${REPORT_MONTH_EXPR} = $${paramIndex}`;
             params.push(parseInt(month));
             paramIndex++;
         }
 
         if (year) {
-            whereClause += ` AND r.year = $${paramIndex}`;
+            whereClause += ` AND ${REPORT_YEAR_EXPR} = $${paramIndex}`;
             params.push(parseInt(year));
             paramIndex++;
         }
@@ -166,8 +168,8 @@ const getMyReports = async (req, res, next) => {
                 r.status,
                 r.notes,
                 r.live_duration,
-                r.month,
-                r.year,
+                ${REPORT_MONTH_EXPR} AS month,
+                ${REPORT_YEAR_EXPR} AS year,
                 r.created_at,
                 r.updated_at
             FROM reports r
@@ -317,14 +319,14 @@ const getReportStatistics = async (req, res, next) => {
         let paramIndex = 1;
 
         if (month) {
-            whereClause = `WHERE month = $${paramIndex}`;
+            whereClause = `WHERE COALESCE(month, EXTRACT(MONTH FROM created_at)::INT) = $${paramIndex}`;
             params.push(parseInt(month));
             paramIndex++;
         }
 
         if (year) {
             whereClause += whereClause ? ' AND' : 'WHERE';
-            whereClause += ` year = $${paramIndex}`;
+            whereClause += ` COALESCE(year, EXTRACT(YEAR FROM created_at)::INT) = $${paramIndex}`;
             params.push(parseInt(year));
             paramIndex++;
         }
@@ -414,12 +416,21 @@ const getAvailableMonths = async (req, res, next) => {
     try {
         const monthsQuery = `
             SELECT DISTINCT
-                year,
-                month,
-                TO_CHAR(TO_DATE(year || '-' || month || '-01', 'YYYY-MM-DD'), 'Month YYYY') as display_name,
+                COALESCE(year, EXTRACT(YEAR FROM created_at)::INT) as year,
+                COALESCE(month, EXTRACT(MONTH FROM created_at)::INT) as month,
+                TO_CHAR(
+                    TO_DATE(
+                        COALESCE(year, EXTRACT(YEAR FROM created_at)::INT) || '-' ||
+                        COALESCE(month, EXTRACT(MONTH FROM created_at)::INT) || '-01',
+                        'YYYY-MM-DD'
+                    ),
+                    'Month YYYY'
+                ) as display_name,
                 COUNT(*) as report_count
             FROM reports
-            GROUP BY year, month
+            GROUP BY
+                COALESCE(year, EXTRACT(YEAR FROM created_at)::INT),
+                COALESCE(month, EXTRACT(MONTH FROM created_at)::INT)
             ORDER BY year DESC, month DESC
         `;
 
@@ -456,8 +467,8 @@ const getReportById = async (req, res, next) => {
                 r.status,
                 r.notes,
                 r.live_duration,
-                r.month,
-                r.year,
+                ${REPORT_MONTH_EXPR} AS month,
+                ${REPORT_YEAR_EXPR} AS year,
                 r.created_at,
                 r.updated_at,
                 u.id as host_id,

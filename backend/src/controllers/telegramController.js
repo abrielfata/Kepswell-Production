@@ -533,9 +533,29 @@ const handleConfirmation = async (chatId, telegramUserId, textInput) => {
 
             for (const platformData of platforms) {
                 const reportQuery = `
-                    INSERT INTO reports (host_id, reported_gmv, screenshot_url, ocr_raw_text, status, live_duration, platform)
-                    VALUES ($1, $2, $3, $4, 'PENDING', $5, $6)
-                    RETURNING id, reported_gmv, live_duration, platform, created_at
+                    INSERT INTO reports (
+                        host_id,
+                        reported_gmv,
+                        screenshot_url,
+                        ocr_raw_text,
+                        status,
+                        live_duration,
+                        platform,
+                        month,
+                        year
+                    )
+                    VALUES (
+                        $1,
+                        $2,
+                        $3,
+                        $4,
+                        'PENDING',
+                        $5,
+                        $6,
+                        EXTRACT(MONTH FROM CURRENT_DATE)::INT,
+                        EXTRACT(YEAR FROM CURRENT_DATE)::INT
+                    )
+                    RETURNING id, reported_gmv, live_duration, platform, month, year, created_at
                 `;
 
                 const reportResult = await query(reportQuery, [
