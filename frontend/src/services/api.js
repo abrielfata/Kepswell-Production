@@ -1,6 +1,20 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';
+const getApiBaseUrl = () => {
+    const fromEnv = process.env.REACT_APP_API_BASE_URL;
+    if (fromEnv) {
+        return fromEnv;
+    }
+
+    if (process.env.NODE_ENV === 'production') {
+        console.error('Missing REACT_APP_API_BASE_URL in production build');
+        return '/api';
+    }
+
+    return 'http://localhost:5000/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
     baseURL: API_BASE_URL,

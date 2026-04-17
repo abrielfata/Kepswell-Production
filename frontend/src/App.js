@@ -89,7 +89,7 @@ function App() {
                     <Route 
                         path="/manager" 
                         element={
-                            <ProtectedRoute allowedRoles={['MANAGER']}>
+                            <ProtectedRoute allowedRoles={["MANAGER"]}>
                                 <ManagerDashboard />
                             </ProtectedRoute>
                         } 
@@ -99,7 +99,7 @@ function App() {
                     <Route 
                         path="/users" 
                         element={
-                            <ProtectedRoute allowedRoles={['MANAGER']}>
+                            <ProtectedRoute allowedRoles={["MANAGER"]}>
                                 <UserManagement />
                             </ProtectedRoute>
                         } 
@@ -109,7 +109,7 @@ function App() {
                     <Route 
                         path="/hosts" 
                         element={
-                            <ProtectedRoute allowedRoles={['MANAGER']}>
+                            <ProtectedRoute allowedRoles={["MANAGER"]}>
                                 <HostManagement />
                             </ProtectedRoute>
                         } 
@@ -119,7 +119,7 @@ function App() {
                     <Route 
                         path="/host" 
                         element={
-                            <ProtectedRoute allowedRoles={['HOST']}>
+                            <ProtectedRoute allowedRoles={["HOST"]}>
                                 <HostDashboard />
                             </ProtectedRoute>
                         } 

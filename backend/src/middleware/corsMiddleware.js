@@ -1,14 +1,36 @@
+const parseOrigins = (value) =>
+    (value || '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+const baseOrigins = new Set([
+    'http://localhost:3000',
+    ...parseOrigins(process.env.FRONTEND_URL),
+    ...parseOrigins(process.env.FRONTEND_URLS),
+]);
+
+const isVercelPreviewOrigin = (origin) => {
+    if (!origin) {
+        return false;
+    }
+
+    try {
+        const { hostname, protocol } = new URL(origin);
+        return protocol === 'https:' && hostname.endsWith('.vercel.app');
+    } catch (error) {
+        return false;
+    }
+};
+
 // CORS middleware with origin restriction for production
 module.exports = (req, res, next) => {
-    const allowedOrigins = [
-        process.env.FRONTEND_URL,
-        'http://localhost:3000',
-    ].filter(Boolean);
-
     const origin = req.headers.origin;
+    const isAllowed = !origin || baseOrigins.has(origin) || isVercelPreviewOrigin(origin);
 
-    if (allowedOrigins.includes(origin)) {
+    if (isAllowed && origin) {
         res.header('Access-Control-Allow-Origin', origin);
+        res.header('Vary', 'Origin');
     }
 
     res.header(

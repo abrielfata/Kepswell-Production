@@ -1,5 +1,12 @@
 const app = require('./app');
-const { PORT, NODE_ENV } = require('./config/env');
+const { setupWebhook } = require('./controllers/telegramController');
+const {
+    PORT,
+    NODE_ENV,
+    TELEGRAM_BOT_TOKEN,
+    BACKEND_URL,
+    AUTO_SET_TELEGRAM_WEBHOOK,
+} = require('./config/env');
 
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
@@ -22,6 +29,24 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`   GET    /api/reports/my-reports (Host)`);
     console.log(`   GET    /api/reports/:id`);
     console.log(`   PUT    /api/reports/:id/status (Manager)`);
+
+    const normalizedBackendUrl = BACKEND_URL ? BACKEND_URL.replace(/\/+$/, '') : '';
+    if (AUTO_SET_TELEGRAM_WEBHOOK && TELEGRAM_BOT_TOKEN && normalizedBackendUrl) {
+        const webhookUrl = `${normalizedBackendUrl}/api/webhook/telegram`;
+        setupWebhook(webhookUrl)
+            .then((result) => {
+                if (!result.success) {
+                    console.error(`❌ Telegram webhook setup failed: ${result.error}`);
+                }
+            })
+            .catch((error) => {
+                console.error(`❌ Telegram webhook setup exception: ${error.message}`);
+            });
+    } else {
+        console.log(
+            'ℹ️  Auto webhook setup skipped (set AUTO_SET_TELEGRAM_WEBHOOK=true and BACKEND_URL)'
+        );
+    }
 });
 
 // Graceful shutdown
