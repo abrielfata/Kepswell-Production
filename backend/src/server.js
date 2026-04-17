@@ -1,7 +1,7 @@
 const app = require('./app');
 const { PORT, NODE_ENV } = require('./config/env');
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📍 API URL: http://localhost:${PORT}`);
     console.log(`🔒 Environment: ${NODE_ENV}`);
