@@ -22,4 +22,7 @@ module.exports = {
     OCRSPACE_API_KEY: process.env.OCRSPACE_API_KEY,
     DATABASE_URL: process.env.DATABASE_URL,
     FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
+    FRONTEND_URLS: process.env.FRONTEND_URLS || '',
+    BACKEND_URL: process.env.BACKEND_URL || process.env.RENDER_EXTERNAL_URL || '',
+    AUTO_SET_TELEGRAM_WEBHOOK: process.env.AUTO_SET_TELEGRAM_WEBHOOK === 'true',
 };
