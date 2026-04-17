@@ -1,6 +1,16 @@
-// Simple CORS middleware (no external dependency)
+// CORS middleware with origin restriction for production
 module.exports = (req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
+    const allowedOrigins = [
+        process.env.FRONTEND_URL,
+        'http://localhost:3000',
+    ].filter(Boolean);
+
+    const origin = req.headers.origin;
+
+    if (allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+    }
+
     res.header(
         'Access-Control-Allow-Headers',
         'Origin, X-Requested-With, Content-Type, Accept, Authorization'
@@ -13,4 +23,3 @@ module.exports = (req, res, next) => {
 
     next();
 };
-

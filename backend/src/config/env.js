@@ -20,4 +20,6 @@ module.exports = {
     JWT_SECRET: process.env.JWT_SECRET,
     TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
     OCRSPACE_API_KEY: process.env.OCRSPACE_API_KEY,
+    DATABASE_URL: process.env.DATABASE_URL,
+    FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
 };
