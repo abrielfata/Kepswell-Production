@@ -22,8 +22,8 @@ const isVercelPreviewOrigin = (origin) => {
     try {
         const { hostname, protocol } = new URL(origin);
         if (protocol !== 'https:' || !hostname.endsWith('.vercel.app')) return false;
-        const slug = process.env.VERCEL_PROJECT_SLUG;
-        return slug ? hostname.includes(slug) : false;
+        const slug = process.env.VERCEL_PROJECT_SLUG || 'kepswell';
+        return hostname.includes(slug);
     } catch {
         return false;
     }

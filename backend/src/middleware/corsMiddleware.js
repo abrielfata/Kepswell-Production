@@ -45,9 +45,9 @@ const isVercelPreviewOrigin = (origin) => {
             return false;
         }
 
-        // Only allow preview deployments that match our project slug
-        const slug = process.env.VERCEL_PROJECT_SLUG;
-        if (slug && hostname.includes(slug)) {
+        // Only allow preview deployments that match our project slug, default to 'kepswell'
+        const slug = process.env.VERCEL_PROJECT_SLUG || 'kepswell';
+        if (hostname.includes(slug)) {
             return true;
         }
 
