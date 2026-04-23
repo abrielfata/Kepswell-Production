@@ -4,6 +4,8 @@ const {
     sendReportVerifiedNotification,
     sendReportRejectedNotification
 } = require('./telegramController');
+const { emitToManagers, emitToHost } = require('../socket/socketServer');
+const SOCKET_EVENTS = require('../socket/socketEvents');
 const AppError = require('../utils/appError');
 const REPORT_MONTH_EXPR = `COALESCE(r.month, EXTRACT(MONTH FROM r.created_at)::INT)`;
 const REPORT_YEAR_EXPR = `COALESCE(r.year, EXTRACT(YEAR FROM r.created_at)::INT)`;
@@ -296,6 +298,17 @@ const updateReportStatus = async (req, res, next) => {
 
         console.log(`✅ Report ${id} status updated to ${status} by Manager`);
         console.log(`📲 Notification sent to host ${reportData.host_name} (${reportData.telegram_user_id})`);
+
+        // ✅ EMIT WEBSOCKET EVENT — notify all managers + the specific host
+        const socketPayload = {
+            reportId: parseInt(id),
+            status,
+            hostId: reportData.host_id,
+            notes: notes || null,
+            updatedAt: result.rows[0].updated_at,
+        };
+        emitToManagers(SOCKET_EVENTS.REPORT_STATUS_CHANGED, socketPayload);
+        emitToHost(reportData.host_id, SOCKET_EVENTS.REPORT_STATUS_CHANGED, socketPayload);
 
     } catch (error) {
         return next(error);

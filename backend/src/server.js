@@ -1,4 +1,6 @@
+const http = require('http');
 const app = require('./app');
+const { initSocket } = require('./socket/socketServer');
 const { setupWebhook } = require('./controllers/telegramController');
 const {
     PORT,
@@ -8,7 +10,13 @@ const {
     AUTO_SET_TELEGRAM_WEBHOOK,
 } = require('./config/env');
 
-const server = app.listen(PORT, '0.0.0.0', () => {
+// Buat HTTP server dari Express app
+const server = http.createServer(app);
+
+// Pasang Socket.io ke HTTP server yang sama
+initSocket(server);
+
+server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📍 API URL: http://localhost:${PORT}`);
     console.log(`🔒 Environment: ${NODE_ENV}`);
@@ -19,16 +27,17 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`   GET    /api/users/pending (Manager)`);
     console.log(`   PUT    /api/users/:userId/approve (Manager)`);
     console.log(`   DELETE /api/users/:userId/reject (Manager)`);
-    console.log(`   GET    /api/hosts (Manager)`); // ✅ NEW
-    console.log(`   POST   /api/hosts (Manager)`); // ✅ NEW
-    console.log(`   PUT    /api/hosts/:id (Manager)`); // ✅ NEW
-    console.log(`   DELETE /api/hosts/:id (Manager)`); // ✅ NEW
-    console.log(`   PATCH  /api/hosts/:id/toggle-status (Manager)`); // ✅ NEW
+    console.log(`   GET    /api/hosts (Manager)`);
+    console.log(`   POST   /api/hosts (Manager)`);
+    console.log(`   PUT    /api/hosts/:id (Manager)`);
+    console.log(`   DELETE /api/hosts/:id (Manager)`);
+    console.log(`   PATCH  /api/hosts/:id/toggle-status (Manager)`);
     console.log(`   GET    /api/reports (Manager)`);
     console.log(`   GET    /api/reports/statistics (Manager)`);
     console.log(`   GET    /api/reports/my-reports (Host)`);
     console.log(`   GET    /api/reports/:id`);
     console.log(`   PUT    /api/reports/:id/status (Manager)`);
+    console.log(`\n🔌 WebSocket: Socket.io ready on ws://localhost:${PORT}`);
 
     const normalizedBackendUrl = BACKEND_URL ? BACKEND_URL.replace(/\/+$/, '') : '';
     if (AUTO_SET_TELEGRAM_WEBHOOK && TELEGRAM_BOT_TOKEN && normalizedBackendUrl) {

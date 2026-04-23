@@ -1,28 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
+import { useSocket } from '../contexts/SocketContext';
 import usersClient from '../api/usersClient';
 import './Sidebar.css';
 
 function Sidebar() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
-    const [pendingCount, setPendingCount] = useState(0);
+
+    // Ambil pendingCount dari SocketContext (real-time via WebSocket)
+    const { pendingCount: socketPendingCount, setPendingCount } = useSocket();
+    const [pendingCount, setPendingCountLocal] = useState(0);
+
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
 
+    // Fetch awal pending count saat komponen mount (untuk Manager)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         if (user?.role === 'MANAGER') {
             fetchPendingCount();
-            const interval = setInterval(fetchPendingCount, 30000);
-            return () => clearInterval(interval);
         }
+        // Tidak ada setInterval — update berikutnya via WebSocket (users:pendingCountChanged)
     }, [user]);
+
+    // Sync dengan nilai yang datang dari SocketContext
+    useEffect(() => {
+        if (socketPendingCount !== null) {
+            setPendingCountLocal(socketPendingCount);
+        }
+    }, [socketPendingCount]);
 
     const fetchPendingCount = async () => {
         try {
             const response = await usersClient.getPending();
-            setPendingCount(response.data.total);
+            const total = response.data.total ?? 0;
+            setPendingCountLocal(total);
+            setPendingCount(total); // sync ke SocketContext juga
         } catch (error) {
             console.error('Error fetching pending count:', error);
         }
@@ -122,10 +137,10 @@ function Sidebar() {
                                 onClick={() => setMobileOpen(false)}
                             >
                                 <span className="nav-text">Pending Users</span>
-                                {pendingCount > 0 && (
+                                {pendingCount > 0 && !sidebarCollapsed && (
                                     <span className="nav-badge">{pendingCount}</span>
                                 )}
-                                {sidebarCollapsed && pendingCount > 0 && (
+                                {pendingCount > 0 && sidebarCollapsed && (
                                     <span className="nav-badge-dot" />
                                 )}
                             </NavLink>
