@@ -1,7 +1,197 @@
 .App {
     min-height: 100vh;
-    font-family: 'Georgia', 'Times New Roman', serif;
+    font-family: var(--font-sans);
 }
+
+/* ============================================
+   APP LAYOUT WITH SIDEBAR
+   ============================================ */
+
+.app-layout {
+    display: flex;
+    min-height: 100vh;
+    background: var(--color-bg);
+}
+
+.main-content {
+    flex: 1;
+    margin-left: 240px;
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 100vh;
+    min-width: 0;
+}
+
+.sidebar.collapsed ~ .main-content {
+    margin-left: 64px;
+}
+
+/* ============================================
+   PAGE WRAPPER (common spacing for all pages)
+   ============================================ */
+
+.page-wrapper {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 32px 28px;
+}
+
+.page-header {
+    margin-bottom: 28px;
+}
+
+.page-header h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+}
+
+.page-header p {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+/* ============================================
+   MOBILE HAMBURGER BUTTON
+   ============================================ */
+
+.mobile-menu-btn {
+    display: none;
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 1001;
+    background: var(--sidebar-bg);
+    border: none;
+    color: #fff;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-lg);
+    transition: var(--transition-fast);
+}
+
+.mobile-menu-btn:hover {
+    background: var(--sidebar-surface);
+}
+
+/* ============================================
+   LOADING STATE
+   ============================================ */
+
+.loading-screen {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0B1D2E 0%, #152D44 50%, #0B1D2E 100%);
+}
+
+.loading-spinner {
+    width: 44px;
+    height: 44px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   404 PAGE
+   ============================================ */
+
+.not-found {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0B1D2E 0%, #152D44 100%);
+    color: white;
+    text-align: center;
+    padding: 20px;
+}
+
+.not-found h1 {
+    font-size: 120px;
+    font-weight: 800;
+    letter-spacing: -4px;
+    background: linear-gradient(135deg, #1C6EA4 0%, #2563EB 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    margin-bottom: 16px;
+}
+
+.not-found p {
+    font-size: 20px;
+    margin-bottom: 8px;
+    color: #cbd5e1;
+}
+
+.not-found a {
+    margin-top: 24px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
+    background: var(--color-primary);
+    color: white;
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    font-size: 14px;
+    transition: var(--transition-base);
+    box-shadow: 0 4px 20px rgba(28, 110, 164, 0.4);
+}
+
+.not-found a:hover {
+    background: var(--color-primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(28, 110, 164, 0.5);
+}
+
+/* ============================================
+   RESPONSIVE LAYOUT
+   ============================================ */
+
+@media (max-width: 1024px) {
+    .main-content {
+        margin-left: 0;
+    }
+    .sidebar.collapsed ~ .main-content {
+        margin-left: 0;
+    }
+    .mobile-menu-btn {
+        display: flex;
+    }
+    .page-wrapper {
+        padding: 80px 20px 32px;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        margin-left: 0;
+    }
+    .page-wrapper {
+        padding: 80px 16px 24px;
+    }
+    .page-header h1 {
+        font-size: 22px;
+    }
+}
+
 
 /* ============================================
    NEW: APP LAYOUT WITH SIDEBAR

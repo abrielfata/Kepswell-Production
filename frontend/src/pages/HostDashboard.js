@@ -81,7 +81,7 @@ function HostDashboard() {
                 {/* Month Filter */}
                 <div className="month-filter-section">
                     <div className="month-filter-label">
-                        <strong>📅 Period:</strong> {getMonthDisplay()}
+                        <strong>Period:</strong> {getMonthDisplay()}
                     </div>
                     <select 
                         className="month-filter-select"
@@ -145,7 +145,7 @@ function HostDashboard() {
 
                     <div className="stat-card total-hours">
                         <div className="stat-info">
-                            <h3>⏱️ {stats.totalLiveHours}</h3>
+                            <h3>{stats.totalLiveHours}</h3>
                             <p>Total Live Hours</p>
                         </div>
                     </div>
