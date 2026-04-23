@@ -10,6 +10,25 @@ const baseOrigins = new Set([
     ...parseOrigins(process.env.FRONTEND_URLS),
 ]);
 
+const getVercelHostPrefix = (origin) => {
+    try {
+        const { hostname } = new URL(origin);
+        if (!hostname.endsWith('.vercel.app')) {
+            return null;
+        }
+
+        return hostname.replace('.vercel.app', '').toLowerCase();
+    } catch (error) {
+        return null;
+    }
+};
+
+const configuredVercelPrefixes = new Set(
+    [...baseOrigins]
+        .map((origin) => getVercelHostPrefix(origin))
+        .filter(Boolean)
+);
+
 /**
  * Check if origin is a Vercel preview deployment for THIS project.
  * Requires VERCEL_PROJECT_SLUG env var (e.g., "live-session-reporting").
@@ -28,7 +47,22 @@ const isVercelPreviewOrigin = (origin) => {
 
         // Only allow preview deployments that match our project slug
         const slug = process.env.VERCEL_PROJECT_SLUG;
-        return slug ? hostname.includes(slug) : false;
+        if (slug && hostname.includes(slug)) {
+            return true;
+        }
+
+        // Fallback: allow preview domains that belong to configured Vercel origin(s)
+        // Example:
+        // configured: kepswell-frontend.vercel.app
+        // preview:    kepswell-frontend-git-main-team.vercel.app
+        const incomingPrefix = getVercelHostPrefix(origin);
+        if (!incomingPrefix) {
+            return false;
+        }
+
+        return [...configuredVercelPrefixes].some(
+            (prefix) => incomingPrefix === prefix || incomingPrefix.startsWith(`${prefix}-`)
+        );
     } catch (error) {
         return false;
     }
