@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
@@ -9,39 +9,37 @@ function Sidebar() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
 
-    // Ambil pendingCount dari SocketContext (real-time via WebSocket)
-    const { pendingCount: socketPendingCount, setPendingCount } = useSocket();
+    // pendingCount dari SocketContext — diupdate real-time via WebSocket
+    const { pendingCount: wsPendingCount, setPendingCount } = useSocket();
     const [pendingCount, setPendingCountLocal] = useState(0);
 
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
 
-    // Fetch awal pending count saat komponen mount (untuk Manager)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => {
-        if (user?.role === 'MANAGER') {
-            fetchPendingCount();
-        }
-        // Tidak ada setInterval — update berikutnya via WebSocket (users:pendingCountChanged)
-    }, [user]);
-
-    // Sync dengan nilai yang datang dari SocketContext
-    useEffect(() => {
-        if (socketPendingCount !== null) {
-            setPendingCountLocal(socketPendingCount);
-        }
-    }, [socketPendingCount]);
-
-    const fetchPendingCount = async () => {
+    const fetchPendingCount = useCallback(async () => {
         try {
             const response = await usersClient.getPending();
             const total = response.data.total ?? 0;
             setPendingCountLocal(total);
-            setPendingCount(total); // sync ke SocketContext juga
+            setPendingCount(total); // sync ke SocketContext
         } catch (error) {
             console.error('Error fetching pending count:', error);
         }
-    };
+    }, [setPendingCount]);
+
+    // Fetch awal saat mount; update berikutnya via WebSocket (users:pendingCountChanged)
+    useEffect(() => {
+        if (user?.role === 'MANAGER') {
+            fetchPendingCount();
+        }
+    }, [user, fetchPendingCount]);
+
+    // Sync nilai dari SocketContext ketika WebSocket mengirim event
+    useEffect(() => {
+        if (wsPendingCount !== null) {
+            setPendingCountLocal(wsPendingCount);
+        }
+    }, [wsPendingCount]);
 
     const handleLogout = () => {
         logout();
