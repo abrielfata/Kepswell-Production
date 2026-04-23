@@ -5,7 +5,9 @@ const { extractTextFromImage } = require('../services/ocrService');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-const bcrypt = require('bcryptjs'); // ✅ Library wajib
+const bcrypt = require('bcryptjs');
+const { emitToManagers, emitToHost } = require('../socket/socketServer');
+const SOCKET_EVENTS = require('../socket/socketEvents');
 
 // ============================================
 // STATE MANAGEMENT
@@ -608,6 +610,20 @@ const handleConfirmation = async (chatId, telegramUserId, textInput) => {
                 successMessage += `🆔 Report ID: #${report.id}\n`;
                 successMessage += `📅 Waktu: ${new Date(report.created_at).toLocaleString('id-ID')}\n\n`;
             }
+
+            // ✅ EMIT WEBSOCKET — notify managers + host of new report(s)
+            savedReports.forEach(report => {
+                const payload = {
+                    reportId: report.id,
+                    hostId: userId,
+                    gmv: report.reported_gmv,
+                    platform: report.platform,
+                    status: 'PENDING',
+                    createdAt: report.created_at,
+                };
+                emitToManagers(SOCKET_EVENTS.REPORT_NEW, payload);
+                emitToHost(userId, SOCKET_EVENTS.REPORT_NEW, payload);
+            });
 
             successMessage += `⏳ Status: Menunggu verifikasi manager`;
 

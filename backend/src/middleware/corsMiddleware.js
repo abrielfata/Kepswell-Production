@@ -10,6 +10,11 @@ const baseOrigins = new Set([
     ...parseOrigins(process.env.FRONTEND_URLS),
 ]);
 
+/**
+ * Check if origin is a Vercel preview deployment for THIS project.
+ * Requires VERCEL_PROJECT_SLUG env var (e.g., "live-session-reporting").
+ * If slug is not set, all preview origins are rejected (secure default).
+ */
 const isVercelPreviewOrigin = (origin) => {
     if (!origin) {
         return false;
@@ -17,7 +22,13 @@ const isVercelPreviewOrigin = (origin) => {
 
     try {
         const { hostname, protocol } = new URL(origin);
-        return protocol === 'https:' && hostname.endsWith('.vercel.app');
+        if (protocol !== 'https:' || !hostname.endsWith('.vercel.app')) {
+            return false;
+        }
+
+        // Only allow preview deployments that match our project slug
+        const slug = process.env.VERCEL_PROJECT_SLUG;
+        return slug ? hostname.includes(slug) : false;
     } catch (error) {
         return false;
     }
@@ -38,6 +49,7 @@ module.exports = (req, res, next) => {
         'Origin, X-Requested-With, Content-Type, Accept, Authorization'
     );
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Credentials', 'true');
 
     if (req.method === 'OPTIONS') {
         return res.sendStatus(200);

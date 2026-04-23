@@ -18,6 +18,10 @@ const buildMonthParams = (selectedMonth, selectedYear) => {
     };
 };
 
+/**
+ * Available months dropdown
+ * Real-time updates handled by SocketContext (report:new event)
+ */
 export const useAvailableMonthsQuery = () =>
     useQuery({
         queryKey: ['reports', 'availableMonths'],
@@ -26,10 +30,14 @@ export const useAvailableMonthsQuery = () =>
             return res.data.data;
         },
         staleTime: 1000 * 60,
-        refetchInterval: 1000 * 60 * 5, // Refetch every 5 minutes
         refetchOnWindowFocus: true,
+        // Polling dihapus → data diperbarui via WebSocket event report:new
     });
 
+/**
+ * Host: daftar laporan milik sendiri
+ * Real-time updates handled by SocketContext (report:new, report:statusChanged)
+ */
 export const useMyReportsQuery = (filter, selectedMonth, selectedYear, page = 1, limit = 10) => {
     const params = {
         ...(filter !== 'ALL' ? { status: filter } : {}),
@@ -45,11 +53,15 @@ export const useMyReportsQuery = (filter, selectedMonth, selectedYear, page = 1,
             return res.data.data; // { reports, pagination }
         },
         keepPreviousData: true,
-        refetchInterval: 1000 * 15, // Refetch every 15 seconds for real-time updates
         refetchOnWindowFocus: true,
+        // Polling dihapus → data diperbarui via WebSocket event
     });
 };
 
+/**
+ * Manager: semua laporan
+ * Real-time updates handled by SocketContext (report:new, report:statusChanged)
+ */
 export const useAllReportsQuery = (filter, selectedMonth, selectedYear, page = 1, limit = 10) => {
     const params = {
         ...(filter !== 'ALL' ? { status: filter } : {}),
@@ -65,11 +77,15 @@ export const useAllReportsQuery = (filter, selectedMonth, selectedYear, page = 1
             return res.data.data; // { reports, pagination }
         },
         keepPreviousData: true,
-        refetchInterval: 1000 * 15, // Refetch every 15 seconds for real-time updates
         refetchOnWindowFocus: true,
+        // Polling dihapus → data diperbarui via WebSocket event
     });
 };
 
+/**
+ * Manager: statistik laporan
+ * Real-time updates handled by SocketContext
+ */
 export const useReportStatisticsQuery = (selectedMonth, selectedYear) => {
     const params = buildMonthParams(selectedMonth, selectedYear);
 
@@ -80,11 +96,15 @@ export const useReportStatisticsQuery = (selectedMonth, selectedYear) => {
             return res.data.data;
         },
         keepPreviousData: true,
-        refetchInterval: 1000 * 15, // Refetch every 15 seconds for real-time updates
         refetchOnWindowFocus: true,
+        // Polling dihapus → data diperbarui via WebSocket event
     });
 };
 
+/**
+ * Manager: statistik host bulanan
+ * Real-time updates handled by SocketContext
+ */
 export const useHostStatisticsQuery = (selectedMonth, selectedYear) => {
     const params = buildMonthParams(selectedMonth, selectedYear);
 
@@ -95,11 +115,16 @@ export const useHostStatisticsQuery = (selectedMonth, selectedYear) => {
             return res.data.data;
         },
         keepPreviousData: true,
-        refetchInterval: 1000 * 15, // Refetch every 15 seconds for real-time updates
         refetchOnWindowFocus: true,
+        // Polling dihapus → data diperbarui via WebSocket event
     });
 };
 
+/**
+ * Mutation: update status laporan (Manager)
+ * Setelah mutasi berhasil, cache di-invalidate secara lokal.
+ * Backend juga akan emit socket event → SocketContext invalidate untuk semua client.
+ */
 export const useUpdateReportStatusMutation = () => {
     const queryClient = useQueryClient();
     return useMutation({
@@ -112,4 +137,3 @@ export const useUpdateReportStatusMutation = () => {
         },
     });
 };
-

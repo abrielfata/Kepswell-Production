@@ -3,6 +3,8 @@ const {
     sendAccountApprovedNotification, 
     sendAccountRejectedNotification 
 } = require('./telegramController');
+const { emitToManagers } = require('../socket/socketServer');
+const SOCKET_EVENTS = require('../socket/socketEvents');
 const AppError = require('../utils/appError');
 
 /**
@@ -93,6 +95,14 @@ const approveUser = async (req, res, next) => {
         console.log(`✅ Account status set to ACTIVE`);
         console.log(`📲 Notification sent to Telegram user ${user.telegram_user_id}`);
 
+        // ✅ EMIT WEBSOCKET — notify managers to refresh pending count
+        const countResult = await query(
+            "SELECT COUNT(*) as total FROM users WHERE is_approved = false AND full_name != 'PENDING'"
+        );
+        emitToManagers(SOCKET_EVENTS.PENDING_COUNT_CHANGED, {
+            total: parseInt(countResult.rows[0].total)
+        });
+
     } catch (error) {
         console.error('❌ Approve user error:', error);
         res.status(500).json({
@@ -139,6 +149,14 @@ const rejectUser = async (req, res, next) => {
 
         console.log(`✅ User ${result.rows[0].full_name} rejected and deleted by Manager`);
         console.log(`📲 Rejection notification sent to Telegram user ${user.telegram_user_id}`);
+
+        // ✅ EMIT WEBSOCKET — notify managers to refresh pending count
+        const countResult = await query(
+            "SELECT COUNT(*) as total FROM users WHERE is_approved = false AND full_name != 'PENDING'"
+        );
+        emitToManagers(SOCKET_EVENTS.PENDING_COUNT_CHANGED, {
+            total: parseInt(countResult.rows[0].total)
+        });
 
     } catch (error) {
         return next(error);
