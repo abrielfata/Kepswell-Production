@@ -28,11 +28,23 @@ function Sidebar() {
     }, [setPendingCount]);
 
     // Fetch awal saat mount; update berikutnya via WebSocket (users:pendingCountChanged)
+// SESUDAH
     useEffect(() => {
-        if (user?.role === 'MANAGER') {
-            fetchPendingCount();
-        }
-    }, [user, fetchPendingCount]);
+        if (user?.role !== 'MANAGER') return;
+
+        const fetchPendingCount = async () => {
+            try {
+                const response = await usersClient.getPending();
+                const total = response.data.total ?? 0;
+                setPendingCountLocal(total);
+                setPendingCount(total);
+            } catch (error) {
+                console.error('Error fetching pending count:', error);
+            }
+        };
+
+        fetchPendingCount();
+    }, [user, setPendingCount]);
 
     // Sync nilai dari SocketContext ketika WebSocket mengirim event
     useEffect(() => {
