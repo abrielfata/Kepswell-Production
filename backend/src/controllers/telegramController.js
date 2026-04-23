@@ -67,15 +67,15 @@ const handleStartCommand = async (chatId, telegramUserId, username) => {
     clearState(telegramUserId);
     
     const userResult = await query(
-        'SELECT id, full_name, email, role, status, password_hash, is_approved, is_active FROM users WHERE telegram_user_id = $1',
+        'SELECT id, full_name, email, role, password_hash, is_approved, is_active FROM users WHERE telegram_user_id = $1',
         [telegramUserId]
     );
 
     if (userResult.rows.length === 0) {
         // ✅ NEW USER - Create with PENDING status
         await query(
-            `INSERT INTO users (telegram_user_id, username, full_name, role, status, is_approved, is_active)
-             VALUES ($1, $2, 'PENDING', 'HOST', 'PENDING', false, false)`,
+            `INSERT INTO users (telegram_user_id, username, full_name, role, is_approved, is_active)
+             VALUES ($1, $2, 'PENDING', 'HOST', false, false)`,
             [telegramUserId, username || `user_${telegramUserId}`]
         );
         
@@ -315,7 +315,6 @@ const handlePasswordInput = async (chatId, telegramUserId, password) => {
     await query(
         `UPDATE users 
          SET password_hash = $1, 
-             status = 'PENDING',
              is_approved = false,
              is_active = false,
              updated_at = CURRENT_TIMESTAMP

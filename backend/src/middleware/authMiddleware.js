@@ -24,7 +24,7 @@ const verifyToken = (req, res, next) => {
         // Simpan data user ke request object
         req.user = decoded;
         
-        console.log(`✅ Token verified for user: ${decoded.telegram_user_id} (${decoded.role})`);
+        console.log(`✅ Token verified for user: ${decoded.email} (${decoded.role})`);
         
         // Lanjutkan ke handler berikutnya
         next();

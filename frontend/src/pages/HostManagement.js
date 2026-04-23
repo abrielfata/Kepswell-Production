@@ -116,7 +116,7 @@ function HostManagement() {
                 updateData.password = formData.password;
             }
 
-            await updateHost(selectedHost.id, updateData);
+            await updateHost({ id: selectedHost.id, data: updateData });
             
             showToast('Host updated successfully!', 'success');
             

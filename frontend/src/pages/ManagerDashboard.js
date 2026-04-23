@@ -172,7 +172,7 @@ function ManagerDashboard() {
                 {/* Month Filter */}
                 <div className="month-filter-section">
                     <div className="month-filter-label">
-                        <strong>📅 Period:</strong> {getMonthDisplay()}
+                        <strong>Period:</strong> {getMonthDisplay()}
                     </div>
                     <select 
                         className="month-filter-select"
